@@ -4,10 +4,11 @@
 #include <cuda_runtime_api.h>
 #include <cuda.h>
 #include "device_launch_parameters.h"
+#include <cuComplex.h>
 
 typedef float xt;
 typedef float yt;
-typedef float zt;
+typedef cuComplex zt;
 
 
 
@@ -15,10 +16,10 @@ template<typename T>
 __device__ int search_index(const T *data, const int size_data,
                             const T dataq)
 {
-    int idx(0);
+    int idx(-1);
     for(int i = 0; i < size_data; i++)
     {
-        if(dataq >= data[i])
+        if(data[i] > dataq)
         {
             break;
         }
@@ -26,7 +27,6 @@ __device__ int search_index(const T *data, const int size_data,
     }
     return idx;
 }
-
 
 
 __global__ void interp2(const xt* X,  const int n_X,
@@ -55,22 +55,24 @@ __global__ void interp2(const xt* X,  const int n_X,
             yt d_y = Y[iy+1] - Y[iy];
             xt d_x = X[ix+1] - X[ix];
 
-            int id = ix + n_X*iy;
+            int id = iy + n_Y*ix;
 
-            z1 = (Z[id + 1] - Z[id]) * Xq[ii] / d_x;
+            z1 = (Z[id + n_Y] - Z[id]) * Xq[ii] / d_x;
 
-            z1 += (Z[id] * X[ix + 1]- Z[id + 1]* X[ix])
-                    / d_x;
+            z1 += (Z[id] * X[ix + 1]- Z[id + n_Y]* X[ix]) / d_x;
 
-            z2 = (Z[id + n_Y + 1] - Z[id + n_Y]) * Xq[ii] / d_x;
+            z2 = (Z[id + n_Y + 1] - Z[id + 1]) * Xq[ii] / d_x;
 
-            z2 += (Z[id + n_Y] * X[ix + 1]- Z[id + n_Y + 1]* X[ix])
-                    / d_x;
+            z2 += (Z[id + 1] * X[ix + 1]- Z[id + n_Y + 1]* X[ix]) / d_x;
 
             Zq[ii] = (z2 - z1) * Yq[ii] / d_y;
 
-            Zq[ii] += (z1 * Y[iy+1]- z2 * Y[iy])
-                    / d_y;
+            Zq[ii] += (z1 * Y[iy+1]- z2 * Y[iy]) / d_y;
+        }
+        else
+        {
+            Zq[ii] = {0,0};
+        }
         }
         else
         {
