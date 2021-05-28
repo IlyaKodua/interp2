@@ -8,7 +8,7 @@
 
 typedef float xt;
 typedef float yt;
-typedef cuComplex zt;
+typedef float zt;
 
 
 
@@ -71,12 +71,7 @@ __global__ void interp2(const xt* X,  const int n_X,
         }
         else
         {
-            Zq[ii] = {0,0};
-        }
-        }
-        else
-        {
-            Zq[ii] = {};
+            Zq[ii] = NAN;
         }
     }
 }
